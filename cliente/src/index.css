@@ -1,0 +1,386 @@
+/* Importar Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Importar fuentes de Google */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+/* Estilos base */
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-secondary-900 via-secondary-800 to-primary-800 text-gray-100 font-sans;
+    min-height: 100vh;
+    background-attachment: fixed;
+    font-family: 'Inter', 'Roboto', 'Segoe UI', Arial, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    font-family: 'Poppins', 'Inter', sans-serif;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Tarjeta con efecto glassmorphism profesional */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+    @apply transition-all duration-300 hover:border-primary-400/30 hover:shadow-glow-primary;
+  }
+
+  /* Tarjeta premium con gradiente */
+  .premium-card {
+    @apply bg-gradient-to-br from-secondary-800/90 to-primary-800/90 backdrop-blur-xl;
+    @apply border border-primary-400/20 rounded-2xl shadow-2xl;
+    @apply transition-all duration-300 hover:border-primary-400/50 hover:shadow-glow-primary;
+  }
+
+  /* Botón primario con gradiente */
+  .btn-primary {
+    @apply bg-gradient-to-r from-secondary-600 via-primary-600 to-primary-500;
+    @apply text-white font-semibold py-3 px-6 rounded-xl;
+    @apply shadow-lg hover:shadow-glow-primary;
+    @apply transition-all duration-300 hover:scale-105 hover:brightness-110;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+
+  /* Botón secundario */
+  .btn-secondary {
+    @apply bg-white/10 backdrop-blur-sm text-white font-semibold py-3 px-6 rounded-xl;
+    @apply border border-white/20 shadow-lg;
+    @apply transition-all duration-300 hover:bg-white/20 hover:border-primary-400/50;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Botón de éxito */
+  .btn-success {
+    @apply bg-gradient-to-r from-success-600 to-success-500;
+    @apply text-white font-semibold py-3 px-6 rounded-xl;
+    @apply shadow-lg hover:shadow-glow-success;
+    @apply transition-all duration-300 hover:scale-105 hover:brightness-110;
+  }
+
+  /* Botón de error/peligro */
+  .btn-danger {
+    @apply bg-gradient-to-r from-error-600 to-error-500;
+    @apply text-white font-semibold py-3 px-6 rounded-xl;
+    @apply shadow-lg hover:shadow-glow-error;
+    @apply transition-all duration-300 hover:scale-105 hover:brightness-110;
+  }
+
+  /* Input con diseño moderno */
+  .input-modern {
+    @apply w-full bg-white/5 backdrop-blur-sm border border-white/20;
+    @apply rounded-xl px-4 py-3 text-white placeholder-gray-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400;
+    @apply transition-all duration-300;
+  }
+
+  /* Select con diseño moderno */
+  .select-modern {
+    @apply w-full bg-white/5 backdrop-blur-sm border border-white/20;
+    @apply rounded-xl px-4 py-3 text-white;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400;
+    @apply transition-all duration-300 cursor-pointer;
+  }
+
+  /* Estilos para las opciones del select */
+  .select-modern option,
+  select option {
+    @apply bg-secondary-800 text-white;
+    background-color: rgba(10, 32, 29, 0.95) !important;
+    color: #ffffff !important;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Estilos para select en general */
+  select {
+    @apply bg-white/5 backdrop-blur-sm border border-white/20;
+    @apply rounded-xl px-4 py-3 text-white;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400;
+    @apply transition-all duration-300 cursor-pointer;
+  }
+
+  select option {
+    @apply bg-secondary-800 text-white;
+    background-color: rgba(10, 32, 29, 0.95) !important;
+    color: #ffffff !important;
+    padding: 0.75rem 1rem;
+  }
+
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    @apply bg-primary-600 text-white;
+    background-color: rgba(22, 131, 107, 0.8) !important;
+    color: #ffffff !important;
+  }
+
+  /* Textarea con diseño moderno */
+  .textarea-modern {
+    @apply w-full bg-white/5 backdrop-blur-sm border border-white/20;
+    @apply rounded-xl px-4 py-3 text-white placeholder-gray-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400;
+    @apply transition-all duration-300 resize-none;
+  }
+
+  /* Badge moderno */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+    @apply transition-all duration-300;
+  }
+
+  .badge-primary {
+    @apply bg-primary-500/20 text-primary-300 border border-primary-400/30;
+  }
+
+  .badge-success {
+    @apply bg-success-500/20 text-success-300 border border-success-400/30;
+  }
+
+  .badge-warning {
+    @apply bg-warning-500/20 text-warning-300 border border-warning-400/30;
+  }
+
+  .badge-error {
+    @apply bg-error-500/20 text-error-300 border border-error-400/30;
+  }
+
+  .badge-info {
+    @apply bg-accent-500/20 text-accent-300 border border-accent-400/30;
+  }
+
+  /* Título con gradiente */
+  .gradient-title {
+    @apply bg-gradient-to-r from-primary-300 via-primary-400 to-primary-300;
+    @apply bg-clip-text text-transparent font-bold;
+    background-size: 200% auto;
+    animation: gradient 3s linear infinite;
+  }
+
+  /* Divider elegante */
+  .divider {
+    @apply h-px bg-gradient-to-r from-transparent via-primary-400/30 to-transparent my-6;
+  }
+
+  /* Spinner de carga */
+  .spinner {
+    @apply inline-block w-8 h-8 border-4 border-primary-400/30 border-t-primary-400 rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-white/5 animate-pulse rounded-xl;
+  }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl;
+    @apply text-gray-300 hover:text-white hover:bg-white/10;
+    @apply transition-all duration-300 cursor-pointer;
+  }
+
+  .sidebar-item-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl;
+    @apply text-white bg-gradient-to-r from-primary-600/20 to-primary-500/20;
+    @apply border-l-4 border-primary-400 font-semibold;
+  }
+
+  /* Tabla moderna */
+  .table-modern {
+    @apply w-full text-left border-separate border-spacing-0;
+  }
+
+  .table-modern thead {
+    @apply bg-white/5 backdrop-blur-sm;
+  }
+
+  .table-modern th {
+    @apply px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider;
+    @apply border-b border-white/10 first:rounded-tl-xl last:rounded-tr-xl;
+  }
+
+  .table-modern tbody tr {
+    @apply bg-white/5 backdrop-blur-sm hover:bg-white/10;
+    @apply transition-colors duration-200 cursor-pointer;
+  }
+
+  .table-modern td {
+    @apply px-6 py-4 text-sm text-gray-200 border-b border-white/5;
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50;
+    @apply flex items-center justify-center p-4;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  /* Modal content */
+  .modal-content {
+    @apply glass-card max-w-4xl w-full max-h-[90vh] overflow-y-auto;
+    @apply p-6;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  /* Toast personalizado */
+  .toast-custom {
+    @apply glass-card p-4 min-w-[300px];
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    @apply bg-white/5 rounded-full;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    @apply bg-primary-500/50 rounded-full hover:bg-primary-500/70;
+  }
+
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Animaciones personalizadas */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Estilos para React Toastify con el nuevo diseño */
+.Toastify__toast {
+  @apply glass-card text-white border border-white/20;
+  font-family: 'Inter', sans-serif;
+}
+
+.Toastify__toast--success {
+  @apply border-success-400/30 bg-success-900/20;
+}
+
+.Toastify__toast--error {
+  @apply border-error-400/30 bg-error-900/20;
+}
+
+.Toastify__toast--warning {
+  @apply border-warning-400/30 bg-warning-900/20;
+}
+
+.Toastify__toast--info {
+  @apply border-accent-400/30 bg-accent-900/20;
+}
+
+.Toastify__progress-bar {
+  @apply bg-gradient-to-r from-primary-400 to-primary-500;
+}
+
+/* Estilos globales para selects y sus opciones */
+select,
+select.input-modern,
+select.select-modern {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select option {
+  background-color: rgba(10, 32, 29, 0.98) !important;
+  color: #ffffff !important;
+  padding: 0.75rem 1rem !important;
+  border: none !important;
+}
+
+select option:hover,
+select option:focus {
+  background-color: rgba(22, 131, 107, 0.6) !important;
+  color: #ffffff !important;
+}
+
+select option:checked,
+select option[selected] {
+  background-color: rgba(22, 131, 107, 0.8) !important;
+  color: #ffffff !important;
+}
+
+/* Para navegadores WebKit (Chrome, Safari, Edge) */
+select::-webkit-scrollbar {
+  width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: rgba(22, 131, 107, 0.5);
+  border-radius: 4px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: rgba(22, 131, 107, 0.7);
+}
+
+/* Flecha del select personalizada */
+select.select-modern,
+select.input-modern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 1rem center !important;
+  padding-right: 2.5rem !important;
+}

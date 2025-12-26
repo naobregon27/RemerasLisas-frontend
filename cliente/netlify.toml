@@ -1,0 +1,22 @@
+# Configuración de Netlify para aplicaciones de una sola página (SPA)
+# Este archivo soluciona el problema de "Page not found" en Netlify
+
+[build]
+  # Directorio de compilación (ajustar si es diferente)
+  publish = "dist"
+  
+  # Comando de construcción
+  command = "npm run build"
+
+# Regla de redirección para SPA
+# Esto asegura que todas las rutas se redirijan a index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  
+# Encabezados para mejoras de rendimiento
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate" 
