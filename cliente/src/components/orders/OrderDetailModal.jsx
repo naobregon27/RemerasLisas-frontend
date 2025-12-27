@@ -12,7 +12,7 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, onUpdatePaym
       setStatusData({ estado: order.estadoPedido || 'pendiente', notas: '' });
       setPaymentData({
         estadoPago: order.estadoPago || 'pendiente',
-        idTransaccion: order.idTransaccion || '',
+        idTransaccion: order.datosTransaccion?.idTransaccion || '',
         notas: ''
       });
     }
@@ -87,12 +87,15 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, onUpdatePaym
                 Cliente
               </h4>
               <div className="space-y-2 text-sm text-gray-300">
-                <p><span className="text-gray-400">Nombre:</span> {order.direccionEnvio?.nombre}</p>
-                <p><span className="text-gray-400">Teléfono:</span> {order.direccionEnvio?.telefono}</p>
-                <p><span className="text-gray-400">Dirección:</span> {order.direccionEnvio?.direccion}</p>
-                <p><span className="text-gray-400">Ciudad:</span> {order.direccionEnvio?.ciudad}</p>
-                <p><span className="text-gray-400">País:</span> {order.direccionEnvio?.pais}</p>
-                <p><span className="text-gray-400">CP:</span> {order.direccionEnvio?.codigoPostal}</p>
+                <p><span className="text-gray-400">Nombre:</span> {order.usuario?.name || order.direccionEnvio?.nombre || 'N/A'}</p>
+                <p><span className="text-gray-400">Email:</span> {order.usuario?.email || 'N/A'}</p>
+                <p><span className="text-gray-400">Teléfono:</span> {order.direccionEnvio?.telefono || 'N/A'}</p>
+                <p><span className="text-gray-400">Dirección:</span> {order.direccionEnvio?.direccion || 'N/A'}</p>
+                <p><span className="text-gray-400">Ciudad:</span> {order.direccionEnvio?.ciudad || 'N/A'}</p>
+                <p><span className="text-gray-400">País:</span> {order.direccionEnvio?.pais || 'N/A'}</p>
+                {order.direccionEnvio?.codigoPostal && (
+                  <p><span className="text-gray-400">CP:</span> {order.direccionEnvio.codigoPostal}</p>
+                )}
               </div>
             </div>
             
@@ -116,7 +119,12 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, onUpdatePaym
                   <StatusBadge status={order.estadoPago} type="payment" />
                 </p>
                 <p><span className="text-gray-400">Método:</span> {order.metodoPago || 'N/A'}</p>
-                {order.idTransaccion && <p><span className="text-gray-400">Transacción:</span> <span className="font-mono text-xs">{order.idTransaccion}</span></p>}
+                {order.datosTransaccion?.idTransaccion && (
+                  <p><span className="text-gray-400">Transacción:</span> <span className="font-mono text-xs">{order.datosTransaccion.idTransaccion}</span></p>
+                )}
+                {order.fechaEntrega && (
+                  <p><span className="text-gray-400">Fecha Entrega:</span> {formatDate(order.fechaEntrega)}</p>
+                )}
               </div>
             </div>
           </div>
@@ -171,6 +179,65 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, onUpdatePaym
             </div>
           </div>
 
+          {/* Historial de Estados */}
+          {order.historialEstados && order.historialEstados.length > 0 && (
+            <div className="glass-card p-4">
+              <h4 className="font-semibold text-lg text-white mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Historial de Estados
+              </h4>
+              <div className="space-y-3">
+                {order.historialEstados.map((historial, index) => (
+                  <div key={index} className="border-l-4 border-primary-400 pl-4 pb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-white capitalize">{historial.estado}</span>
+                      <span className="text-xs text-gray-400">{formatDate(historial.fecha)}</span>
+                    </div>
+                    {historial.usuario && (
+                      <p className="text-sm text-gray-400">Por: {historial.usuario.name || historial.usuario.email}</p>
+                    )}
+                    {historial.notas && (
+                      <p className="text-sm text-gray-300 mt-1">{historial.notas}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Historial de Pagos */}
+          {order.historialPagos && order.historialPagos.length > 0 && (
+            <div className="glass-card p-4">
+              <h4 className="font-semibold text-lg text-white mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Historial de Pagos
+              </h4>
+              <div className="space-y-3">
+                {order.historialPagos.map((historial, index) => (
+                  <div key={index} className="border-l-4 border-success-400 pl-4 pb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-white capitalize">{historial.estado}</span>
+                      <span className="text-xs text-gray-400">{formatDate(historial.fecha)}</span>
+                    </div>
+                    {historial.monto && (
+                      <p className="text-sm text-gray-300">Monto: {formatPrice(historial.monto)}</p>
+                    )}
+                    {historial.idTransaccion && (
+                      <p className="text-sm text-gray-400 font-mono text-xs">ID: {historial.idTransaccion}</p>
+                    )}
+                    {historial.notas && (
+                      <p className="text-sm text-gray-300 mt-1">{historial.notas}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actualizar Estado y Pago */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="glass-card p-4">
@@ -205,8 +272,10 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, onUpdatePaym
                   <select value={paymentData.estadoPago} onChange={(e) => setPaymentData({ ...paymentData, estadoPago: e.target.value })} className="input-modern" required>
                     <option value="">Seleccionar</option>
                     <option value="pendiente">Pendiente</option>
+                    <option value="procesando">Procesando</option>
                     <option value="completado">Completado</option>
                     <option value="fallido">Fallido</option>
+                    <option value="reembolsado">Reembolsado</option>
                   </select>
                 </div>
                 <div>

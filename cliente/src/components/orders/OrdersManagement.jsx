@@ -48,12 +48,18 @@ const OrdersManagement = () => {
   const handleViewOrder = async (orderId) => {
     try {
       setLoading(true);
-      const orderDetails = await orderService.getOrderById(orderId);
+      const response = await orderService.getOrderById(orderId);
+      // El backend devuelve directamente el objeto del pedido o puede venir envuelto
+      const orderDetails = response.pedido || response || null;
+      if (!orderDetails) {
+        throw new Error('No se recibieron datos del pedido');
+      }
       setSelectedOrder(orderDetails);
       setIsDetailModalOpen(true);
     } catch (error) {
       console.error('Error al obtener detalles del pedido:', error);
-      toast.error('No se pudieron cargar los detalles del pedido');
+      const errorMessage = error.message || error.response?.data?.message || 'No se pudieron cargar los detalles del pedido';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -61,40 +67,84 @@ const OrdersManagement = () => {
 
   const handleUpdateOrderStatus = async (orderId, statusData) => {
     try {
-      const updatedOrder = await orderService.updateOrderStatus(orderId, statusData);
-      setOrders(prev => prev.map(order => 
-        order._id === orderId ? { ...order, estadoPedido: statusData.estado } : order
-      ));
+      const response = await orderService.updateOrderStatus(orderId, statusData);
+      // El backend devuelve el pedido actualizado directamente o envuelto
+      const updatedOrder = response.pedido || response || null;
       
-      if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, estadoPedido: statusData.estado });
+      if (updatedOrder) {
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? updatedOrder : order
+        ));
+        
+        if (selectedOrder && selectedOrder._id === orderId) {
+          // Refrescar el pedido completo para obtener los historiales actualizados
+          try {
+            const refreshedOrder = await orderService.getOrderById(orderId);
+            setSelectedOrder(refreshedOrder.pedido || refreshedOrder || updatedOrder);
+          } catch (refreshError) {
+            // Si falla el refresh, usar el pedido actualizado que recibimos
+            setSelectedOrder(updatedOrder);
+          }
+        }
+      } else {
+        // Si no viene el pedido completo, actualizar solo el estado
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? { ...order, estadoPedido: statusData.estado } : order
+        ));
+        
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({ ...selectedOrder, estadoPedido: statusData.estado });
+        }
       }
       
       toast.success(`Estado actualizado: ${statusData.estado}`, { icon: '✅' });
       return updatedOrder;
     } catch (error) {
       console.error('Error al actualizar estado del pedido:', error);
-      toast.error('No se pudo actualizar el estado del pedido');
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo actualizar el estado del pedido';
+      toast.error(errorMessage);
       throw error;
     }
   };
 
   const handleUpdatePaymentStatus = async (orderId, paymentData) => {
     try {
-      const updatedOrder = await orderService.updatePaymentStatus(orderId, paymentData);
-      setOrders(prev => prev.map(order => 
-        order._id === orderId ? { ...order, estadoPago: paymentData.estadoPago } : order
-      ));
+      const response = await orderService.updatePaymentStatus(orderId, paymentData);
+      // El backend devuelve el pedido actualizado directamente o envuelto
+      const updatedOrder = response.pedido || response || null;
       
-      if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, estadoPago: paymentData.estadoPago });
+      if (updatedOrder) {
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? updatedOrder : order
+        ));
+        
+        if (selectedOrder && selectedOrder._id === orderId) {
+          // Refrescar el pedido completo para obtener los historiales actualizados
+          try {
+            const refreshedOrder = await orderService.getOrderById(orderId);
+            setSelectedOrder(refreshedOrder.pedido || refreshedOrder || updatedOrder);
+          } catch (refreshError) {
+            // Si falla el refresh, usar el pedido actualizado que recibimos
+            setSelectedOrder(updatedOrder);
+          }
+        }
+      } else {
+        // Si no viene el pedido completo, actualizar solo el estado de pago
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? { ...order, estadoPago: paymentData.estadoPago } : order
+        ));
+        
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({ ...selectedOrder, estadoPago: paymentData.estadoPago });
+        }
       }
       
       toast.success(`Estado de pago: ${paymentData.estadoPago}`, { icon: '💳' });
       return updatedOrder;
     } catch (error) {
       console.error('Error al actualizar estado de pago:', error);
-      toast.error('No se pudo actualizar el estado de pago');
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo actualizar el estado de pago';
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -134,8 +184,8 @@ const OrdersManagement = () => {
   const stats = {
     total: orders.length,
     pending: orders.filter(o => o.estadoPedido === 'pendiente').length,
-    processing: orders.filter(o => o.estadoPedido === 'en_proceso').length,
-    completed: orders.filter(o => o.estadoPedido === 'completado').length,
+    processing: orders.filter(o => o.estadoPedido === 'procesando').length,
+    completed: orders.filter(o => o.estadoPedido === 'entregado').length,
     cancelled: orders.filter(o => o.estadoPedido === 'cancelado').length,
   };
 
@@ -230,8 +280,9 @@ const OrdersManagement = () => {
             >
               <option value="">Todos los estados</option>
               <option value="pendiente">Pendiente</option>
-              <option value="en_proceso">En Proceso</option>
-              <option value="completado">Completado</option>
+              <option value="procesando">Procesando</option>
+              <option value="enviado">Enviado</option>
+              <option value="entregado">Entregado</option>
               <option value="cancelado">Cancelado</option>
             </select>
           </div>
@@ -251,7 +302,7 @@ const OrdersManagement = () => {
         <div className="glass-card overflow-hidden">
           <OrderTable
             orders={filteredOrders}
-            onView={handleViewOrder}
+            onViewOrder={handleViewOrder}
             onUpdateStatus={handleUpdateOrderStatus}
             onUpdatePayment={handleUpdatePaymentStatus}
             onDelete={handleDeleteOrder}

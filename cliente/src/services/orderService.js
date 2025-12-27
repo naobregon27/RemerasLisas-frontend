@@ -2,9 +2,22 @@ import axiosInstance from './axiosConfig';
 
 const orderService = {
   // Obtener todos los pedidos del administrador
-  getAdminOrders: async () => {
+  getAdminOrders: async (filters = {}) => {
     try {
-      const response = await axiosInstance.get('/api/pedidos/admin/pedidos');
+      const { estadoPedido, estadoPago, page, limit } = filters;
+      let url = '/api/pedidos/admin/pedidos';
+      const params = new URLSearchParams();
+      
+      if (estadoPedido) params.append('estadoPedido', estadoPedido);
+      if (estadoPago) params.append('estadoPago', estadoPago);
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await axiosInstance.get(url);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al obtener pedidos' };
@@ -15,9 +28,11 @@ const orderService = {
   getOrderById: async (orderId) => {
     try {
       const response = await axiosInstance.get(`/api/pedidos/${orderId}`);
-      return response.data;
+      // El backend puede devolver el pedido directamente o envuelto
+      return response.data.pedido || response.data || response;
     } catch (error) {
-      throw error.response?.data || { message: 'Error al obtener el pedido' };
+      const errorData = error.response?.data || { message: 'Error al obtener el pedido' };
+      throw errorData;
     }
   },
 
@@ -62,9 +77,22 @@ const orderService = {
   },
 
   // Obtener todos los pedidos del administrador (nuevo formato)
-  getAdminOrdersV2: async () => {
+  getAdminOrdersV2: async (filters = {}) => {
     try {
-      const response = await axiosInstance.get('/api/pedidos/admin/pedidos');
+      const { estadoPedido, estadoPago, page, limit } = filters;
+      let url = '/api/pedidos/admin/pedidos';
+      const params = new URLSearchParams();
+      
+      if (estadoPedido) params.append('estadoPedido', estadoPedido);
+      if (estadoPago) params.append('estadoPago', estadoPago);
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await axiosInstance.get(url);
       // Devuelve solo el array de pedidos
       if (response.data && Array.isArray(response.data.pedidos)) {
         return response.data.pedidos;
@@ -73,6 +101,16 @@ const orderService = {
       return [];
     } catch (error) {
       throw error.response?.data || { message: 'Error al obtener pedidos' };
+    }
+  },
+
+  // Eliminar un pedido
+  deleteOrder: async (orderId) => {
+    try {
+      const response = await axiosInstance.delete(`/api/pedidos/${orderId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al eliminar el pedido' };
     }
   }
 };
