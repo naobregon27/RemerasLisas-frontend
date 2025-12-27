@@ -236,7 +236,7 @@ const AdminDashboard = () => {
         orderService.getAdminOrdersV2().catch(() => []),
         userService.getAllUsers().catch(() => []),
         productService.getProductsByLocal(localId).catch(() => ({ productos: [] })),
-        categoryService.getCategories(slug).catch(() => [])
+        categoryService.getCategoriesByLocal(localId).catch(() => [])
       ]);
       
       // Extraer el array de productos de la respuesta

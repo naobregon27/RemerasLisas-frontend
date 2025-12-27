@@ -59,6 +59,29 @@ const categoryService = {
     } catch (error) {
       throw error.response?.data || { message: 'Error al restaurar categoría' };
     }
+  },
+
+  // Obtener todas las categorías activas con cantidad de productos
+  getCategoriesWithProductCount: async (localId = null) => {
+    try {
+      const url = localId 
+        ? `/api/categorias/productos/cantidad?local=${localId}`
+        : '/api/categorias/productos/cantidad';
+      const response = await axiosInstance.get(url);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener categorías con cantidad de productos' };
+    }
+  },
+
+  // Obtener una categoría por ID o slug (detalles completos)
+  getCategoryById: async (categoryId) => {
+    try {
+      const response = await axiosInstance.get(`/api/categorias/${categoryId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener categoría' };
+    }
   }
 };
 

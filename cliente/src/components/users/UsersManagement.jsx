@@ -76,12 +76,17 @@ const UsersManagement = () => {
       
       if (showInactive) {
         const data = await userService.getInactiveUsers();
-        setInactiveUsers(data);
-        toast.success(`${data.length} usuarios inactivos cargados`, { icon: '👥' });
+        console.log('📋 Usuarios inactivos recibidos:', data);
+        setInactiveUsers(Array.isArray(data) ? data : []);
+        toast.success(`${Array.isArray(data) ? data.length : 0} usuarios inactivos cargados`, { icon: '👥' });
       } else {
         const data = await userService.getUsers();
-        setUsers(data);
-        toast.success(`${data.length} usuarios activos cargados`, { icon: '👥' });
+        console.log('📋 Usuarios activos recibidos:', data);
+        console.log('📋 Tipo de datos:', Array.isArray(data) ? 'Array' : typeof data);
+        console.log('📋 Cantidad de usuarios:', Array.isArray(data) ? data.length : 'No es array');
+        const usersArray = Array.isArray(data) ? data : [];
+        setUsers(usersArray);
+        toast.success(`${usersArray.length} usuarios activos cargados`, { icon: '👥' });
       }
     } catch (error) {
       console.error('Error al cargar usuarios:', error);

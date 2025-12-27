@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import CategoryTable from './CategoryTable';
 import CategoryModal from './CategoryModal';
 import SubcategoriesModal from './SubcategoriesModal';
+import CategoryDetailModal from './CategoryDetailModal';
 import categoryService from '../../services/categoryService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorState from '../common/ErrorState';
@@ -17,7 +18,9 @@ const CategoriesManagement = () => {
   const [error, setError] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isSubcatModalOpen, setIsSubcatModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [isProductsModalOpen, setIsProductsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, category: null, action: null });
@@ -38,7 +41,17 @@ const CategoriesManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await categoryService.getCategoriesByLocal(localId);
+      // Intentar usar el nuevo endpoint que incluye cantidad de productos
+      let data;
+      try {
+        data = await categoryService.getCategoriesWithProductCount(localId);
+      } catch (err) {
+        // Si el endpoint no existe, usar el endpoint normal como fallback
+        console.warn('Endpoint de cantidad de productos no disponible, usando endpoint estándar:', err);
+        data = await categoryService.getCategoriesByLocal(localId);
+        // Agregar cantidadProductos como 0 si no viene en la respuesta
+        data = Array.isArray(data) ? data.map(cat => ({ ...cat, cantidadProductos: cat.cantidadProductos || 0 })) : [];
+      }
       setCategories(data);
       toast.success(`${data.length} categorías cargadas`, { icon: '🏷️' });
     } catch (err) {
@@ -111,11 +124,18 @@ const CategoriesManagement = () => {
     setIsProductsModalOpen(true);
   };
 
+  const handleViewDetails = (category) => {
+    setSelectedCategoryId(category._id);
+    setIsDetailModalOpen(true);
+  };
+
   const handleCloseModal = () => {
     setIsCategoryModalOpen(false);
     setIsSubcatModalOpen(false);
     setIsProductsModalOpen(false);
+    setIsDetailModalOpen(false);
     setSelectedCategory(null);
+    setSelectedCategoryId(null);
   };
 
   const handleCategorySaved = () => {
@@ -206,6 +226,7 @@ const CategoriesManagement = () => {
             onRestore={handleRestoreCategory}
             onViewSubcategories={handleViewSubcategories}
             onViewProducts={handleViewProducts}
+            onViewDetails={handleViewDetails}
           />
         </div>
       )}
@@ -222,6 +243,12 @@ const CategoriesManagement = () => {
         isOpen={isSubcatModalOpen}
         onClose={handleCloseModal}
         category={selectedCategory}
+      />
+
+      <CategoryDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseModal}
+        categoryId={selectedCategoryId}
       />
 
       {/* Diálogo de confirmación */}
