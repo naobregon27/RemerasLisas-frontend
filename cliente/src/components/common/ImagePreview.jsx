@@ -278,30 +278,34 @@ const ImagePreview = ({
     }
     
     try {
-      // Determinar si es base64
-      setIsBase64(isBase64String(src));
+      // Verificar si es un objeto con url o directamente una url
+      let imageUrl = src;
+      
+      // Si es un objeto con propiedad url, extraer la url
+      if (typeof src === 'object' && src !== null) {
+        if (src.url) {
+          imageUrl = src.url;
+        } else if (src.timestamp) { 
+          // Si tiene timestamp, usarlo para crear un identificador único
+          imageUrl = src.uri || src.path || src.src || '';
+        } else {
+          // Si es un objeto sin url, intentar usar el objeto directamente como string
+          imageUrl = src;
+        }
+      }
+      
+      // Determinar si es base64 (después de extraer la URL del objeto)
+      const isBase64Img = isBase64String(imageUrl);
+      setIsBase64(isBase64Img);
       
       // Procesar según el tipo
-      if (isBase64String(src)) {
+      if (isBase64Img) {
         // Es base64, formatear correctamente
-        const formattedSrc = formatBase64(src);
+        const formattedSrc = formatBase64(imageUrl);
         // Añadir un pseudo-timestamp al final del src base64 para forzar re-renderizado
         setProcessedSrc(`${formattedSrc}#${refreshKey || Date.now()}`);
         setFileName('Imagen');
       } else {
-        // Verificar si es un objeto con url o directamente una url
-        let imageUrl = src;
-        
-        // Si es un objeto con propiedad url, extraer la url
-        if (typeof src === 'object' && src !== null) {
-          if (src.url) {
-            imageUrl = src.url;
-          } else if (src.timestamp) { 
-            // Si tiene timestamp, usarlo para crear un identificador único
-            imageUrl = src.uri || src.path || src.src || '';
-          }
-        }
-        
         // Procesar URL con buildImageUrl para asegurar formato correcto
         // Siempre forzar refresh cuando cambia refreshKey
         const url = buildImageUrl(imageUrl, true);
@@ -398,6 +402,24 @@ const ImagePreview = ({
       backgroundColor: transparentBackground ? 'transparent' : undefined,
       ...style
     }}>
+      {/* Patrón de cuadrícula para transparencia si está habilitado */}
+      {transparentBackground && (
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage: `
+              linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+              linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%),
+              linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%)
+            `,
+            backgroundSize: '16px 16px',
+            backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+            zIndex: 0
+          }}
+        />
+      )}
+      
       {isLoading && !error && (
         <div className={`loading-indicator absolute inset-0 flex items-center justify-center z-10 ${transparentBackground ? 'bg-transparent' : 'bg-gray-100 bg-opacity-50'}`}>
           <FaSpinner className={`animate-spin text-xl ${transparentBackground ? 'text-primary-400' : 'text-blue-500'}`} />
@@ -410,14 +432,15 @@ const ImagePreview = ({
             ref={imgRef}
             src={processedSrc}
             alt={alt}
-            className="image-preview max-w-full max-h-full"
+            className="image-preview max-w-full max-h-full relative z-10"
             style={{
               objectFit: 'contain',
               display: isLoading ? 'none' : 'block',
               width: 'auto',
               height: 'auto',
               background: 'transparent',
-              backgroundColor: 'transparent'
+              backgroundColor: 'transparent',
+              imageRendering: 'auto'
             }}
             onLoad={handleImageLoad}
             onError={handleImageError}

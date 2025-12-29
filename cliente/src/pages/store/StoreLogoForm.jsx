@@ -23,9 +23,13 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
     if (currentLogo) {
       if (typeof currentLogo === 'string') {
         setLogoBase64(currentLogo);
-      } else if (currentLogo.url) {
-        setLogoBase64(currentLogo.url);
-        setLogoAlt(currentLogo.alt || '');
+      } else if (typeof currentLogo === 'object' && currentLogo !== null) {
+        // Si es un objeto, extraer la URL
+        const logoUrl = currentLogo.url || currentLogo;
+        if (logoUrl) {
+          setLogoBase64(logoUrl);
+          setLogoAlt(currentLogo.alt || '');
+        }
       }
     }
   }, [currentLogo]);
@@ -67,19 +71,22 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
           
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Para LOGOS siempre usar JPEG con alta compresión
-          // Esto reduce drásticamente el tamaño del archivo
-          let outputFormat = 'image/jpeg';
-          let quality = 0.65; // Calidad reducida pero aceptable para logos
+          // Para LOGOS mantener el formato original si es PNG para preservar transparencia
+          // Si es PNG, mantener PNG para preservar transparencia
+          let outputFormat = file.type || 'image/png';
+          let quality = undefined;
           
-          // Solo mantener PNG si es muy pequeño
-          if (file.type === 'image/png' && file.size < 100 * 1024) {
-            // Si el PNG es menor a 100KB, intentar mantenerlo
+          // Si es PNG, mantener PNG para preservar transparencia
+          if (file.type === 'image/png') {
             outputFormat = 'image/png';
-            quality = undefined;
+            quality = undefined; // PNG no usa quality
           } else if (file.type === 'image/webp') {
             outputFormat = 'image/webp';
-            quality = 0.7;
+            quality = 0.8; // WebP con buena calidad
+          } else {
+            // Solo para JPEG usar compresión
+            outputFormat = 'image/jpeg';
+            quality = 0.85; // Calidad aceptable para logos
           }
           
           let dataUrl = canvas.toDataURL(outputFormat, quality);
@@ -92,13 +99,20 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
             console.log('⚠️ Logo aún muy grande, comprimiendo más...');
             // Comprimir aún más si supera 500KB
             if (outputFormat === 'image/png') {
-              // Convertir PNG a JPEG para mayor compresión
-              dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+              // Para PNG, reducir dimensiones pero mantener formato
+              // Reducir dimensiones en un 20% más
+              const newWidth = Math.round(width * 0.8);
+              const newHeight = Math.round(height * 0.8);
+              canvas.width = newWidth;
+              canvas.height = newHeight;
+              ctx.clearRect(0, 0, newWidth, newHeight);
+              ctx.drawImage(img, 0, 0, newWidth, newHeight);
+              dataUrl = canvas.toDataURL('image/png');
               const newSize = Math.round((dataUrl.length * 0.75) / 1024);
-              console.log(`✅ Convertido a JPEG: ${newSize}KB`);
+              console.log(`✅ PNG redimensionado: ${newSize}KB`);
             } else {
-              // Reducir calidad aún más
-              dataUrl = canvas.toDataURL(outputFormat, 0.5);
+              // Reducir calidad aún más para otros formatos
+              dataUrl = canvas.toDataURL(outputFormat, quality ? quality * 0.8 : undefined);
               const newSize = Math.round((dataUrl.length * 0.75) / 1024);
               console.log(`✅ Calidad reducida: ${newSize}KB`);
             }
@@ -195,12 +209,11 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
           Vista Previa del Logo
         </label>
         <div 
-          className="p-8 flex items-center justify-center min-h-[250px] rounded-2xl border-2 border-dashed border-white/20 hover:border-primary-400/40 transition-all relative overflow-hidden"
+          className="p-8 flex items-center justify-center min-h-[300px] rounded-2xl border-2 border-dashed border-white/20 hover:border-primary-400/40 transition-all relative overflow-hidden"
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          style={{ 
-            backgroundColor: '#f8f9fa',
-            position: 'relative'
+          style={{
+            background: 'transparent'
           }}
         >
           {/* Patrón de cuadrícula MUY SUTIL para mostrar transparencia */}
@@ -208,24 +221,27 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
             className="absolute inset-0 pointer-events-none opacity-20"
             style={{
               backgroundImage: `
-                linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
-                linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
-                linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)
+                linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%),
+                linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%)
               `,
-              backgroundSize: '20px 20px',
-              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+              backgroundSize: '16px 16px',
+              backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
             }}
           />
           
           {logoBase64 ? (
             <div className="flex items-center justify-center w-full h-full relative z-10">
-              <img 
+              <ImagePreview
                 src={logoBase64}
                 alt={logoAlt || "Logo"} 
-                className="max-h-48 max-w-[300px] object-contain"
+                className="max-h-64 max-w-full object-contain"
+                transparentBackground={true}
+                showFileName={false}
                 style={{
-                  filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
+                  background: 'transparent',
+                  backgroundColor: 'transparent'
                 }}
               />
             </div>

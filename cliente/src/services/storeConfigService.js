@@ -90,8 +90,77 @@ export const getStoreConfig = async (slug) => {
     console.log('🖼️ Banner en respuesta:', response.data?.configuracionTienda?.banner);
     console.log('🎠 Carrusel en respuesta:', response.data?.configuracionTienda?.carrusel);
     console.log('🏷️ Logo en respuesta:', response.data?.configuracionTienda?.logo);
+    console.log('📄 Secciones en respuesta:', response.data?.configuracionTienda?.secciones);
     
-    // Procesar URLs de banner si existen
+    // Procesar URL del logo si existe
+    if (response.data?.configuracionTienda?.logo) {
+      if (typeof response.data.configuracionTienda.logo === 'object' && response.data.configuracionTienda.logo.url) {
+        response.data.configuracionTienda.logo = {
+          ...response.data.configuracionTienda.logo,
+          url: processImageUrlForDisplay(response.data.configuracionTienda.logo.url)
+        };
+      } else if (typeof response.data.configuracionTienda.logo === 'string') {
+        response.data.configuracionTienda.logo = {
+          url: processImageUrlForDisplay(response.data.configuracionTienda.logo),
+          alt: 'Logo de la tienda'
+        };
+      }
+      console.log('🏷️ Logo procesado:', response.data.configuracionTienda.logo);
+    }
+    
+    // Procesar URLs de secciones si existen
+    if (response.data?.configuracionTienda?.secciones?.length) {
+      response.data.configuracionTienda.secciones = response.data.configuracionTienda.secciones.map(section => {
+        if (section.imagen) {
+          // Si imagen es un objeto con url, procesar la url
+          if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
+            return {
+              ...section,
+              imagen: {
+                ...section.imagen,
+                url: processImageUrlForDisplay(section.imagen.url)
+              }
+            };
+          } else {
+            // Si es string, procesarlo directamente
+            return {
+              ...section,
+              imagen: processImageUrlForDisplay(section.imagen)
+            };
+          }
+        }
+        return section;
+      });
+      console.log('📄 Secciones procesadas:', response.data.configuracionTienda.secciones);
+    }
+    
+    // También procesar seccionesPersonalizadas si existe
+    if (response.data?.configuracionTienda?.seccionesPersonalizadas?.length) {
+      response.data.configuracionTienda.seccionesPersonalizadas = response.data.configuracionTienda.seccionesPersonalizadas.map(section => {
+        if (section.imagen) {
+          // Si imagen es un objeto con url, procesar la url
+          if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
+            return {
+              ...section,
+              imagen: {
+                ...section.imagen,
+                url: processImageUrlForDisplay(section.imagen.url)
+              }
+            };
+          } else {
+            // Si es string, procesarlo directamente
+            return {
+              ...section,
+              imagen: processImageUrlForDisplay(section.imagen)
+            };
+          }
+        }
+        return section;
+      });
+      console.log('📄 SeccionesPersonalizadas procesadas:', response.data.configuracionTienda.seccionesPersonalizadas);
+    }
+    
+    // Procesar URLs de banner si existen (también bannerPrincipal)
     if (response.data?.configuracionTienda?.banner?.length) {
       response.data.configuracionTienda.banner = response.data.configuracionTienda.banner.map(item => {
         if (typeof item === 'object' && item.url) {
@@ -105,6 +174,26 @@ export const getStoreConfig = async (slug) => {
         return item;
       });
       console.log('🖼️ Banner procesado:', response.data.configuracionTienda.banner);
+    }
+    
+    // Procesar bannerPrincipal si existe (alias de banner)
+    if (response.data?.configuracionTienda?.bannerPrincipal?.length) {
+      response.data.configuracionTienda.bannerPrincipal = response.data.configuracionTienda.bannerPrincipal.map(item => {
+        if (typeof item === 'object' && item.url) {
+          return {
+            ...item,
+            url: processImageUrlForDisplay(item.url)
+          };
+        } else if (typeof item === 'string') {
+          return processImageUrlForDisplay(item);
+        }
+        return item;
+      });
+      console.log('🖼️ BannerPrincipal procesado:', response.data.configuracionTienda.bannerPrincipal);
+      // Si no existe banner, usar bannerPrincipal
+      if (!response.data.configuracionTienda.banner) {
+        response.data.configuracionTienda.banner = response.data.configuracionTienda.bannerPrincipal;
+      }
     }
     
     // Almacenar en caché las imágenes del carrusel si existen

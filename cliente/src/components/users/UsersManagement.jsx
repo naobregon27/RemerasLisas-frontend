@@ -276,13 +276,13 @@ const UsersManagement = () => {
                       </td>
                       <td>
                         <div className="flex gap-2">
-                          {showInactive ? (
+                          {userItem.isActive === false ? (
                             <button
                               onClick={() => handleReactivate(userItem)}
                               className="btn-success px-3 py-1 text-sm"
-                              title="Reactivar usuario"
+                              title="Activar usuario"
                             >
-                              Reactivar
+                              Activar
                             </button>
                           ) : (
                             <button

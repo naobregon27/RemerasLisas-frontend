@@ -16,7 +16,6 @@ import StoreBannerForm from './StoreBannerForm';
 import StoreCarruselForm from './StoreCarruselForm';
 import StoreSectionsForm from './StoreSectionsForm';
 import StoreVisualForm from './StoreVisualForm';
-import { buildImageUrl } from '../../config/apiConfig';
 import ImagePreview from '../../components/common/ImagePreview';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorState from '../../components/common/ErrorState';
@@ -46,60 +45,6 @@ const Modal = ({ isOpen, onClose, title, children }) => {
       </div>
     </div>
   );
-};
-
-// Función para procesar URLs de imágenes
-const processImageUrl = (imageUrl) => {
-  if (!imageUrl) return null;
-  
-  if (typeof imageUrl === 'object' && imageUrl !== null && imageUrl.url) {
-    imageUrl = imageUrl.url;
-  }
-  
-  if (typeof imageUrl === 'string' && imageUrl.trim().startsWith('{')) {
-    try {
-      const parsedImg = JSON.parse(imageUrl);
-      if (parsedImg.url) {
-        imageUrl = parsedImg.url;
-      }
-    } catch (e) {
-      console.error('Error parseando JSON de imagen:', e);
-    }
-  }
-  
-  if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
-    return imageUrl;
-  }
-  
-  if (typeof imageUrl === 'string') {
-    let processedUrl = imageUrl;
-    const API_BASE_URL = 'https://e-commerce-backend-flmk.onrender.com';
-    
-    const serverPathPatterns = [
-      '/opt/render/project/src/storage',
-      'C:\\Users\\',
-      '/storage/',
-      'storage/'
-    ];
-    
-    if (processedUrl.includes('[') || processedUrl.includes(']')) {
-      processedUrl = processedUrl.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
-    }
-    
-    for (const pattern of serverPathPatterns) {
-      if (processedUrl.includes(pattern)) {
-        const storagePos = processedUrl.indexOf('storage');
-        if (storagePos !== -1) {
-          processedUrl = `${API_BASE_URL}/api/${processedUrl.substring(storagePos)}`;
-          break;
-        }
-      }
-    }
-    
-    return processedUrl;
-  }
-  
-  return imageUrl;
 };
 
 const StoreSettingsPage = () => {
@@ -277,29 +222,17 @@ const StoreSettingsPage = () => {
           </div>
           
           {storeConfig.logo ? (
-            <div className="mb-4 p-4 rounded-xl flex items-center justify-center min-h-[120px] relative border-2 border-dashed border-white/10 overflow-hidden" style={{ backgroundColor: '#f8f9fa' }}>
-              {/* Patrón de cuadrícula SUTIL para transparencia */}
-              <div 
-                className="absolute inset-0 pointer-events-none opacity-20"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
-                    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
-                    linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
-                    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)
-                  `,
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
-                }}
-              />
-              <img
-                src={processImageUrl(storeConfig.logo)}
-                alt="Logo de la tienda"
-                className="max-h-24 max-w-full object-contain relative z-10"
-                style={{
-                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
-                }}
-              />
+            <div className="mb-4">
+              <div className="glass-card p-3 bg-white/5 rounded-xl">
+                <div className="aspect-[3/1] rounded-lg overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                  <ImagePreview
+                    src={typeof storeConfig.logo === 'object' ? storeConfig.logo?.url || storeConfig.logo : storeConfig.logo}
+                    alt={typeof storeConfig.logo === 'object' ? storeConfig.logo?.alt || "Logo de la tienda" : "Logo de la tienda"}
+                    className="max-h-20 max-w-full object-contain"
+                    showFileName={false}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="mb-4 glass-card p-6 bg-white/5 rounded-xl flex flex-col items-center justify-center min-h-[120px] border-2 border-dashed border-white/20">
@@ -333,36 +266,46 @@ const StoreSettingsPage = () => {
             </div>
           </div>
           
-          {storeConfig.banner && Array.isArray(storeConfig.banner) && storeConfig.banner.length > 0 ? (
+          {((storeConfig.banner && Array.isArray(storeConfig.banner) && storeConfig.banner.length > 0) ||
+            (storeConfig.bannerPrincipal && Array.isArray(storeConfig.bannerPrincipal) && storeConfig.bannerPrincipal.length > 0)) ? (
             <div className="mb-4">
               <div className="glass-card p-3 bg-white/5 rounded-xl">
-                <div className="grid grid-cols-2 gap-2">
-                  {storeConfig.banner.slice(0, 2).map((banner, idx) => {
-                    console.log('Banner en vista:', banner);
-                    const bannerUrl = typeof banner === 'string' ? banner : (banner?.url || banner);
+                <div className="grid grid-cols-3 gap-2">
+                  {(storeConfig.banner || storeConfig.bannerPrincipal || []).slice(0, 3).map((banner, idx) => {
+                    // Extraer URL del banner (puede ser objeto con url o string directo)
+                    const bannerUrl = typeof banner === 'string' 
+                      ? banner 
+                      : (banner?.url || (typeof banner === 'object' && banner !== null ? banner : null));
+                    const bannerAlt = typeof banner === 'object' && banner !== null ? (banner?.alt || `Banner ${idx + 1}`) : `Banner ${idx + 1}`;
                     return (
-                      <div key={idx} className="aspect-[3/1] rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                        <ImagePreview
-                          src={processImageUrl(bannerUrl)}
-                          alt={banner?.alt || `Banner ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                          showFileName={false}
-                          forceRefresh={true}
-                          refreshKey={refreshTrigger}
-                        />
+                      <div key={banner?._id || idx} className="aspect-[3/1] rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        {bannerUrl ? (
+                          <ImagePreview
+                            src={bannerUrl}
+                            alt={bannerAlt}
+                            className="w-full h-full object-cover"
+                            showFileName={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-                {storeConfig.banner.length > 2 && (
-                  <p className="text-xs text-center text-gray-400 mt-2">+{storeConfig.banner.length - 2} más</p>
+                {(storeConfig.banner || storeConfig.bannerPrincipal || []).length > 3 && (
+                  <p className="text-xs text-center text-gray-400 mt-2">+{(storeConfig.banner || storeConfig.bannerPrincipal || []).length - 3} más</p>
                 )}
               </div>
               <p className="text-sm text-success-300 mt-2 flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {storeConfig.banner.length} {storeConfig.banner.length === 1 ? 'banner configurado' : 'banners configurados'}
+                {(storeConfig.banner || storeConfig.bannerPrincipal || []).length} {(storeConfig.banner || storeConfig.bannerPrincipal || []).length === 1 ? 'banner configurado' : 'banners configurados'}
               </p>
             </div>
           ) : (
@@ -401,15 +344,27 @@ const StoreSettingsPage = () => {
             <div className="mb-4">
               <div className="glass-card p-3 bg-white/5 rounded-xl">
                 <div className="grid grid-cols-3 gap-2">
-                  {(storeConfig.carrusel.imagenes || storeConfig.carrusel).slice(0, 3).map((slide, idx) => (
-                    <div key={idx} className="aspect-video rounded-lg overflow-hidden bg-white/5">
-                      <ImagePreview
-                        src={processImageUrl(slide.url || slide)}
-                        alt={slide.titulo || `Slide ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
+                  {(storeConfig.carrusel.imagenes || storeConfig.carrusel).slice(0, 3).map((slide, idx) => {
+                    const slideUrl = slide.url || slide;
+                    return (
+                      <div key={idx} className="aspect-video rounded-lg overflow-hidden bg-white/5">
+                        {slideUrl ? (
+                          <ImagePreview
+                            src={slideUrl}
+                            alt={slide.titulo || `Slide ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            showFileName={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 {(storeConfig.carrusel.imagenes || storeConfig.carrusel).length > 3 && (
                   <p className="text-xs text-center text-gray-400 mt-2">+{(storeConfig.carrusel.imagenes || storeConfig.carrusel).length - 3} más</p>
@@ -487,9 +442,46 @@ const StoreSettingsPage = () => {
             </div>
           </div>
           
-          {storeConfig.seccionesPersonalizadas && storeConfig.seccionesPersonalizadas.length > 0 && (
+          {((storeConfig.secciones && storeConfig.secciones.length > 0) || 
+            (storeConfig.seccionesPersonalizadas && storeConfig.seccionesPersonalizadas.length > 0)) && (
             <div className="mb-4">
-              <p className="text-sm text-gray-300 mb-2">{storeConfig.seccionesPersonalizadas.length} secciones creadas</p>
+              <div className="glass-card p-3 bg-white/5 rounded-xl">
+                <div className="grid grid-cols-3 gap-2">
+                  {(storeConfig.secciones || storeConfig.seccionesPersonalizadas || []).slice(0, 3).map((section, idx) => {
+                    // Extraer URL de la imagen (puede ser objeto con url o string directo)
+                    const sectionImage = typeof section.imagen === 'object' && section.imagen !== null
+                      ? (section.imagen?.url || section.imagen)
+                      : (section.imagen || section.imagenPreview);
+                    return (
+                      <div key={section.id || section._id || idx} className="aspect-video rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        {sectionImage ? (
+                          <ImagePreview
+                            src={sectionImage}
+                            alt={section.titulo || `Sección ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            showFileName={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {(storeConfig.secciones || storeConfig.seccionesPersonalizadas || []).length > 3 && (
+                  <p className="text-xs text-center text-gray-400 mt-2">+{(storeConfig.secciones || storeConfig.seccionesPersonalizadas || []).length - 3} más</p>
+                )}
+              </div>
+              <p className="text-sm text-warning-300 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {(storeConfig.secciones || storeConfig.seccionesPersonalizadas || []).length} {(storeConfig.secciones || storeConfig.seccionesPersonalizadas || []).length === 1 ? 'sección creada' : 'secciones creadas'}
+              </p>
             </div>
           )}
           
@@ -558,10 +550,12 @@ const StoreSettingsPage = () => {
         title="Gestionar Secciones Personalizadas"
       >
         <StoreSectionsForm
-          sections={storeConfig.seccionesPersonalizadas || []}
+          storeSlug={storeSlug}
+          sections={storeConfig.secciones || storeConfig.seccionesPersonalizadas || []}
           onAdd={handleSectionAdd}
           onDelete={handleSectionDelete}
           onClose={closeModal}
+          onRefresh={handleRefresh}
         />
       </Modal>
     </div>
