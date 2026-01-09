@@ -306,9 +306,10 @@ const productService = {
       formData.append('categoria', productData.categoria || '');
       formData.append('local', productData.local || '');
       
-      // Agregar campos opcionales
-      formData.append('destacado', productData.destacado || false);
-      formData.append('enOferta', productData.enOferta || false);
+      // ⚠️ IMPORTANTE: Enviar campos booleanos como strings 'true' o 'false'
+      // El backend acepta múltiples formatos pero es mejor enviar explícitamente como string
+      formData.append('destacado', productData.destacado ? 'true' : 'false');
+      formData.append('enOferta', productData.enOferta ? 'true' : 'false');
       formData.append('porcentajeDescuento', productData.porcentajeDescuento || 0);
       
       // Agregar arrays como JSON strings
@@ -413,9 +414,11 @@ const productService = {
       if (productData.categoria) formData.append('categoria', productData.categoria);
       if (productData.local) formData.append('local', productData.local);
       
-      // Agregar campos booleanos
-      if (productData.destacado !== undefined) formData.append('destacado', productData.destacado);
-      if (productData.enOferta !== undefined) formData.append('enOferta', productData.enOferta);
+      // ⚠️ CRÍTICO: SIEMPRE enviar campos booleanos explícitamente como strings
+      // No importa si cambian o no, siempre enviar el valor actual como string
+      // Esto evita que se mantengan valores anteriores en el backend
+      formData.append('destacado', productData.destacado ? 'true' : 'false');
+      formData.append('enOferta', productData.enOferta ? 'true' : 'false');
       if (productData.porcentajeDescuento !== undefined) formData.append('porcentajeDescuento', productData.porcentajeDescuento);
       
       // Agregar arrays como JSON strings

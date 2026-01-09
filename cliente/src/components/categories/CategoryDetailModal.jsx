@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useSelector } from 'react-redux';
 import categoryService from '../../services/categoryService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import StatusBadge from '../common/StatusBadge';
 
 const CategoryDetailModal = ({ isOpen, onClose, categoryId }) => {
+  const { user, profileData } = useSelector(state => state.auth);
+  const localId = profileData?.local?._id || user?.local?._id;
+  
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,7 +19,8 @@ const CategoryDetailModal = ({ isOpen, onClose, categoryId }) => {
         try {
           setLoading(true);
           setError(null);
-          const data = await categoryService.getCategoryById(categoryId);
+          // Pasar localId como segundo parámetro (opcional pero recomendado para búsquedas por slug)
+          const data = await categoryService.getCategoryById(categoryId, localId);
           setCategory(data);
         } catch (err) {
           console.error('Error al cargar detalles de categoría:', err);
@@ -27,7 +32,7 @@ const CategoryDetailModal = ({ isOpen, onClose, categoryId }) => {
     };
 
     fetchCategoryDetails();
-  }, [isOpen, categoryId]);
+  }, [isOpen, categoryId, localId]);
 
   if (!isOpen) return null;
 

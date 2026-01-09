@@ -138,9 +138,27 @@ const CategoriesManagement = () => {
     setSelectedCategoryId(null);
   };
 
-  const handleCategorySaved = () => {
-    handleCloseModal();
-    fetchCategories();
+  const handleCategorySaved = async (formData) => {
+    try {
+      if (selectedCategory) {
+        // Actualizar categoría existente
+        await categoryService.updateCategory(selectedCategory._id, {
+          ...formData,
+          localId: formData.localId || localId
+        });
+      } else {
+        // Crear nueva categoría
+        await categoryService.createCategory({
+          ...formData,
+          localId: formData.localId || localId
+        });
+      }
+      handleCloseModal();
+      fetchCategories();
+    } catch (error) {
+      console.error('Error al guardar categoría:', error);
+      throw error; // Re-lanzar para que CategoryModal maneje el error
+    }
   };
 
   // Filtrar categorías

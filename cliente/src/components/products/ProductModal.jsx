@@ -52,8 +52,9 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, categories = []
         caracteristicas,
         variantes,
         imagenes: product.imagenes || [],
-        destacado: product.destacado || false,
-        enOferta: product.enOferta || false,
+        // Asegurar que los valores booleanos sean explícitos (true/false, no null/undefined)
+        destacado: Boolean(product.destacado),
+        enOferta: Boolean(product.enOferta),
         porcentajeDescuento: product.porcentajeDescuento || 0
       });
     } else {

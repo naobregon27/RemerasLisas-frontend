@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
 const CategoryModal = ({ isOpen, onClose, onSave, category = null }) => {
+  const { user, profileData } = useSelector(state => state.auth);
+  const localId = profileData?.local?._id || user?.local?._id;
+  
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
@@ -16,17 +20,17 @@ const CategoryModal = ({ isOpen, onClose, onSave, category = null }) => {
       setFormData({
         nombre: category.nombre || '',
         descripcion: category.descripcion || '',
-        localId: category.localId || ''
+        localId: category.localId || category.local?._id || localId || ''
       });
     } else {
       setFormData({
         nombre: '',
         descripcion: '',
-        localId: '',
+        localId: localId || '',
       });
     }
     setErrors({});
-  }, [category, isOpen]);
+  }, [category, isOpen, localId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -52,6 +56,12 @@ const CategoryModal = ({ isOpen, onClose, onSave, category = null }) => {
     
     if (!formData.descripcion.trim()) {
       newErrors.descripcion = 'La descripción es obligatoria';
+    }
+    
+    // Validar que localId esté presente
+    const finalLocalId = formData.localId || localId;
+    if (!finalLocalId) {
+      newErrors.localId = 'No se pudo obtener el ID del local. Por favor, recarga la página.';
     }
     
     setErrors(newErrors);
