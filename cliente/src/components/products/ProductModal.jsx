@@ -40,14 +40,25 @@ const ProductModal = ({ isOpen, onClose, onSave, product = null, categories = []
         ? product.variantes 
         : (product.variantes ? JSON.parse(product.variantes) : []);
       
+      // ⚠️ IMPORTANTE: Extraer solo el _id de categoria y local si son objetos
+      // El backend puede devolver estos campos como objetos poblados, pero para actualizar
+      // necesitamos enviar solo el ID como string
+      const categoriaId = typeof product.categoria === 'object' && product.categoria !== null
+        ? product.categoria._id
+        : product.categoria || '';
+      
+      const localId = typeof product.local === 'object' && product.local !== null
+        ? product.local._id
+        : product.local || localId || '';
+
       setFormData({
         nombre: product.nombre || '',
         descripcion: product.descripcion || '',
         precio: product.precio || '',
         precioAnterior: product.precioAnterior || product.precio || '',
         stock: product.stock || '',
-        categoria: product.categoria || '',
-        local: product.local || localId || '',
+        categoria: categoriaId,
+        local: localId,
         etiquetas,
         caracteristicas,
         variantes,

@@ -303,8 +303,18 @@ const productService = {
       formData.append('precio', productData.precio || 0);
       formData.append('precioAnterior', productData.precioAnterior || 0);
       formData.append('stock', productData.stock || 0);
-      formData.append('categoria', productData.categoria || '');
-      formData.append('local', productData.local || '');
+      
+      // ⚠️ IMPORTANTE: Extraer solo el _id de categoria y local si son objetos
+      // El backend requiere solo el ID como string, NO el objeto completo
+      const categoriaId = typeof productData.categoria === 'object' && productData.categoria !== null
+        ? productData.categoria._id
+        : productData.categoria || '';
+      formData.append('categoria', categoriaId);
+      
+      const localId = typeof productData.local === 'object' && productData.local !== null
+        ? productData.local._id
+        : productData.local || '';
+      formData.append('local', localId);
       
       // ⚠️ IMPORTANTE: Enviar campos booleanos como strings 'true' o 'false'
       // El backend acepta múltiples formatos pero es mejor enviar explícitamente como string
@@ -411,8 +421,18 @@ const productService = {
       if (productData.precio !== undefined) formData.append('precio', productData.precio);
       if (productData.precioAnterior !== undefined) formData.append('precioAnterior', productData.precioAnterior);
       if (productData.stock !== undefined) formData.append('stock', productData.stock);
-      if (productData.categoria) formData.append('categoria', productData.categoria);
-      if (productData.local) formData.append('local', productData.local);
+      
+      // ⚠️ IMPORTANTE: Extraer solo el _id de categoria y local si son objetos
+      // El backend requiere solo el ID como string, NO el objeto completo
+      const categoriaId = typeof productData.categoria === 'object' && productData.categoria !== null
+        ? productData.categoria._id
+        : productData.categoria;
+      if (categoriaId) formData.append('categoria', categoriaId);
+      
+      const localId = typeof productData.local === 'object' && productData.local !== null
+        ? productData.local._id
+        : productData.local;
+      if (localId) formData.append('local', localId);
       
       // ⚠️ CRÍTICO: SIEMPRE enviar campos booleanos explícitamente como strings
       // No importa si cambian o no, siempre enviar el valor actual como string

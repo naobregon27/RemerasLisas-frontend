@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import Pagination from '../shared/Pagination';
 import StatusBadge from '../common/StatusBadge';
@@ -283,28 +284,28 @@ const ProductTable = ({
         </div>
       )}
 
-      {/* Modal de preview de imagen */}
-      {previewImage && (
+      {/* Modal de preview de imagen - Renderizado fuera del contenedor usando Portal */}
+      {previewImage && createPortal(
         <div 
-          className="modal-overlay"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
           <div 
-            className="modal-content max-w-2xl"
+            className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
               <h3 className="text-xl font-bold text-white">{previewImage.nombre}</h3>
               <button
                 onClick={() => setPreviewImage(null)}
-                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
               >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="bg-white/5 rounded-xl p-4">
+            <div className="bg-white/5 rounded-xl p-4 m-4">
               <img
                 src={getImageUrl(previewImage)}
                 alt={previewImage.nombre}
@@ -312,11 +313,14 @@ const ProductTable = ({
                 onError={handleImageError}
               />
             </div>
-            <div className="mt-4 text-gray-300">
-              <p className="text-sm">{previewImage.descripcion}</p>
-            </div>
+            {previewImage.descripcion && (
+              <div className="px-6 pb-6 text-gray-300">
+                <p className="text-sm">{previewImage.descripcion}</p>
+              </div>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
