@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config/apiConfig';
 
-// URL del backend deployado
-const API_URL = import.meta.env.VITE_API_URL || 'https://remeraslisas-backend.onrender.com';
+// URL del backend (misma fuente que apiConfig / INTEGRACION-FRONTEND-TIENDA)
+const API_URL = API_BASE_URL;
 
 // Crear una instancia de axios con la URL base
 const axiosInstance = axios.create({
@@ -16,8 +17,21 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     // Rutas públicas que no requieren autenticación
-    const publicRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password'];
-    const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
+    const publicRoutes = [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/forgot-password',
+      '/api/auth/reset-password',
+    ];
+    const urlPath = (config.url || '').split('?')[0];
+    const isPublicStoreRead =
+      config.method?.toLowerCase() === 'get' &&
+      urlPath.includes('/api/tiendas/') &&
+      (urlPath.includes('/configuracion/publica') ||
+        /\/api\/tiendas\/[^/]+\/videos$/.test(urlPath) ||
+        /^\/api\/tiendas\/[^/]+$/.test(urlPath));
+    const isPublicRoute =
+      publicRoutes.some((route) => config.url?.includes(route)) || isPublicStoreRead;
     
     // Obtener el token del almacenamiento local
     const userStr = localStorage.getItem('user');
@@ -35,25 +49,13 @@ axiosInstance.interceptors.request.use(
           token = user.data.token;
         }
         
-        // Si hay un token, agregarlo a los headers
         if (token) {
-          if (!config.headers) {
-            config.headers = {};
-          }
+          if (!config.headers) config.headers = {};
           config.headers['Authorization'] = `Bearer ${token}`;
-          
-          // Solo log para debug específico
-          if (!isPublicRoute) {
-            console.log('📤', config.method?.toUpperCase(), config.url, '- Token enviado');
-          }
-        } else if (!isPublicRoute) {
-          console.error('❌ No se encontró token para:', config.url);
         }
-      } catch (error) {
-        console.error('❌ Error al parsear usuario:', error);
+      } catch {
+        // JSON corrupto en localStorage — se ignora silenciosamente
       }
-    } else if (!isPublicRoute) {
-      console.error('❌ No hay usuario en localStorage para:', config.url);
     }
     
     return config;

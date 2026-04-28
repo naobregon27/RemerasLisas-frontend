@@ -38,6 +38,17 @@ const authSlice = createSlice({
       state.error = null;
       state.status = 'idle';
     },
+    /** Sincroniza el objeto `local` completo en Redux y localStorage una vez que el Dashboard lo resuelve. */
+    updateUserLocal: (state, action) => {
+      if (state.user) {
+        state.user = { ...state.user, local: action.payload };
+        try { localStorage.setItem('user', JSON.stringify(state.user)); } catch { /* storage full */ }
+      }
+    },
+    /** Reemplaza todo el objeto user (útil al hidratar desde localStorage en otros contextos). */
+    setUserData: (state, action) => {
+      state.user = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -67,5 +78,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { resetError } = authSlice.actions;
+export const { resetError, updateUserLocal, setUserData } = authSlice.actions;
 export default authSlice.reducer; 

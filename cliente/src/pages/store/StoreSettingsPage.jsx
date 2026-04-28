@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import PropTypes from 'prop-types';
 import {
   getStoreConfig,
   updateLogo,
@@ -16,6 +17,7 @@ import StoreBannerForm from './StoreBannerForm';
 import StoreCarruselForm from './StoreCarruselForm';
 import StoreSectionsForm from './StoreSectionsForm';
 import StoreVisualForm from './StoreVisualForm';
+import StoreVideosForm from './StoreVideosForm';
 import ImagePreview from '../../components/common/ImagePreview';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorState from '../../components/common/ErrorState';
@@ -47,18 +49,19 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   );
 };
 
-const StoreSettingsPage = () => {
+const StoreSettingsPage = ({ storeSlug: slugProp }) => {
   const navigate = useNavigate();
-  const { user, profileData } = useSelector(state => state.auth);
+  const { user } = useSelector(state => state.auth);
   
   const [loading, setLoading] = useState(true);
   const [storeConfig, setStoreConfig] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Obtener el slug de la tienda del usuario
-  const storeSlug = user?.local?.slug || profileData?.local?.slug || localStorage.getItem('store_slug');
-  const localId = user?.local?._id || profileData?.local?._id;
+  // Slug: prop del Dashboard (más confiable) → Redux user.local.slug → localStorage fallback
+  const storeSlug = slugProp
+    || (typeof user?.local === 'object' ? user?.local?.slug : null)
+    || localStorage.getItem('store_slug');
 
   useEffect(() => {
     if (!user) {
@@ -68,23 +71,18 @@ const StoreSettingsPage = () => {
     if (storeSlug) {
       fetchStoreConfig();
     } else {
-      console.error('No se encontró el slug de la tienda');
-      toast.error('No se pudo identificar la tienda');
       setLoading(false);
     }
-  }, [user, navigate, refreshTrigger, storeSlug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.token, storeSlug, refreshTrigger]);
 
   const fetchStoreConfig = async () => {
     try {
       setLoading(true);
       const response = await getStoreConfig(storeSlug);
       const config = response.data?.configuracionTienda || response.data;
-      
-      console.log('Configuración de tienda cargada:', config);
-      console.log('Banner en configuración:', config.banner);
-      
       setStoreConfig(config);
-      toast.success('Configuración cargada', { icon: '⚙️' });
+      toast.success('Configuración cargada', { icon: '⚙️', toastId: 'store-config-loaded' });
     } catch (error) {
       console.error('Error al cargar configuración:', error);
       toast.error('Error al cargar la configuración de la tienda');
@@ -178,6 +176,10 @@ const StoreSettingsPage = () => {
 
   if (loading) {
     return <LoadingSpinner fullScreen text="Cargando configuración de la tienda..." />;
+  }
+
+  if (!storeSlug) {
+    return <LoadingSpinner fullScreen text="Obteniendo datos de tu tienda..." />;
   }
 
   if (!storeConfig) {
@@ -322,7 +324,9 @@ const StoreSettingsPage = () => {
             onClick={(e) => { e.stopPropagation(); openModal('banner'); }}
             className="btn-primary w-full group-hover:shadow-glow-primary"
           >
-            {storeConfig.banner && storeConfig.banner.length > 0 ? 'Gestionar Banners' : 'Agregar Banners'}
+            {(storeConfig.banner?.length > 0) || (storeConfig.bannerPrincipal?.length > 0)
+              ? 'Gestionar Banners'
+              : 'Agregar Banners'}
           </button>
         </div>
 
@@ -425,6 +429,67 @@ const StoreSettingsPage = () => {
             className="btn-primary w-full group-hover:shadow-glow-primary"
           >
             {storeConfig.colorPrimario ? 'Editar Colores' : 'Configurar Colores'}
+          </button>
+        </div>
+
+        {/* Videos */}
+        <div className="glass-card p-6 hover:border-blue-400/50 transition-all group cursor-pointer" onClick={() => openModal('videos')}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white">Videos</h3>
+              <p className="text-sm text-gray-400">Videos de la tienda (base64)</p>
+            </div>
+          </div>
+
+          {storeConfig.videos && storeConfig.videos.length > 0 ? (
+            <div className="mb-4">
+              <div className="glass-card p-3 bg-white/5 rounded-xl">
+                <div className="grid grid-cols-3 gap-2">
+                  {storeConfig.videos.slice(0, 3).map((vid, idx) => (
+                    <div key={vid._id || idx} className="aspect-video rounded-lg overflow-hidden bg-black/40 border border-white/10">
+                      {vid.url ? (
+                        <video src={vid.url} className="w-full h-full object-cover" muted preload="metadata" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {storeConfig.videos.length > 3 && (
+                  <p className="text-xs text-center text-gray-400 mt-2">+{storeConfig.videos.length - 3} más</p>
+                )}
+              </div>
+              <p className="text-sm text-blue-300 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {storeConfig.videos.length} {storeConfig.videos.length === 1 ? 'video cargado' : 'videos cargados'}
+              </p>
+            </div>
+          ) : (
+            <div className="mb-4 glass-card p-6 bg-white/5 rounded-xl flex flex-col items-center justify-center min-h-[100px] border-2 border-dashed border-white/20">
+              <svg className="w-10 h-10 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-gray-400">Sin videos cargados</p>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500 mb-3">Máx 12MB por video • MP4, WebM, MOV</p>
+          <button
+            onClick={(e) => { e.stopPropagation(); openModal('videos'); }}
+            className="btn-primary w-full group-hover:shadow-glow-primary"
+          >
+            {storeConfig.videos?.length > 0 ? 'Gestionar Videos' : 'Agregar Videos'}
           </button>
         </div>
 
@@ -558,8 +623,23 @@ const StoreSettingsPage = () => {
           onRefresh={handleRefresh}
         />
       </Modal>
+
+      <Modal
+        isOpen={activeModal === 'videos'}
+        onClose={() => { closeModal(); handleRefresh(); }}
+        title="Gestionar Videos"
+      >
+        <StoreVideosForm
+          storeSlug={storeSlug}
+          onClose={() => { closeModal(); handleRefresh(); }}
+        />
+      </Modal>
     </div>
   );
+};
+
+StoreSettingsPage.propTypes = {
+  storeSlug: PropTypes.string,
 };
 
 export default StoreSettingsPage;

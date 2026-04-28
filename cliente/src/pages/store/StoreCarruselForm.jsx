@@ -71,8 +71,8 @@ const StoreCarruselForm = ({ currentCarrusel, onUpdate, onClose }) => {
         url: base64,
         titulo: '',
         subtitulo: '',
-        textoBoton: '',
-        urlBoton: '',
+        botonTexto: '',
+        botonUrl: '',
         orden: carruseles.length + 1,
         _id: Date.now().toString()
       };
@@ -234,8 +234,8 @@ const StoreCarruselForm = ({ currentCarrusel, onUpdate, onClose }) => {
                         </label>
                         <input
                           type="text"
-                          value={carrusel.textoBoton || ''}
-                          onChange={(e) => handleUpdateCarrusel(carrusel._id, 'textoBoton', e.target.value)}
+                          value={carrusel.botonTexto || ''}
+                          onChange={(e) => handleUpdateCarrusel(carrusel._id, 'botonTexto', e.target.value)}
                           placeholder="Ver más"
                           className="input-modern"
                           disabled={loading}
@@ -250,8 +250,8 @@ const StoreCarruselForm = ({ currentCarrusel, onUpdate, onClose }) => {
                         </label>
                         <input
                           type="text"
-                          value={carrusel.urlBoton || ''}
-                          onChange={(e) => handleUpdateCarrusel(carrusel._id, 'urlBoton', e.target.value)}
+                          value={carrusel.botonUrl || ''}
+                          onChange={(e) => handleUpdateCarrusel(carrusel._id, 'botonUrl', e.target.value)}
                           placeholder="/productos"
                           className="input-modern"
                           disabled={loading}

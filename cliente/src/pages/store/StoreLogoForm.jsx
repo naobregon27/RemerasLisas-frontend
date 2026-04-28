@@ -8,16 +8,6 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
   const [logoFile, setLogoFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [logoBase64, setLogoBase64] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(Date.now());
-
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
 
   useEffect(() => {
     if (currentLogo) {
@@ -157,10 +147,9 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
       
       setLogoFile(file);
       setLogoBase64(base64);
-      toast.success(`✅ Imagen optimizada (${finalSizeKB}KB)`, { icon: '✨' });
-    } catch (error) {
-      console.error("Error al convertir imagen a base64:", error);
-      toast.error("Error al procesar la imagen");
+      toast.success(`Imagen optimizada (${finalSizeKB}KB)`, { icon: '✨' });
+    } catch {
+      toast.error('Error al procesar la imagen');
     }
   };
 
@@ -191,11 +180,9 @@ const StoreLogoForm = ({ currentLogo, onUpdate, onClose }) => {
         logoUrl: logoBase64,
         logoAlt: logoAlt || 'Logo de la tienda'
       });
-      
-      setRefreshKey(Date.now());
       if (onClose) onClose();
-    } catch (error) {
-      console.error('Error al actualizar el logo:', error);
+    } catch {
+      toast.error('Error al guardar el logo');
     } finally {
       setLoading(false);
     }

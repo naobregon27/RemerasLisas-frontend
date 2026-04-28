@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../redux/slices/authSlice';
+import { logout, updateUserLocal } from '../../redux/slices/authSlice';
 import { toast } from 'react-toastify';
 import authService from '../../services/authService';
 import orderService from '../../services/orderService';
@@ -228,9 +228,11 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Actualizar el slug de la tienda
+      // Actualizar el slug de la tienda y sincronizar Redux + localStorage
       setStoreSlug(slug);
-      
+      localStorage.setItem('store_slug', slug);
+      dispatch(updateUserLocal(localData));
+
       // Obtener todas las estadísticas
       const [allOrders, allUsers, allProductsResponse, allCategories] = await Promise.all([
         orderService.getAdminOrdersV2().catch(() => []),
@@ -309,22 +311,19 @@ const AdminDashboard = () => {
     navigate('/login');
   };
 
-  // Efectos
+  // Efectos — depende solo del token para no re-dispararse cuando se actualiza user.local
+  const userToken = user?.token;
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!userToken || user?.role !== 'admin') {
       navigate('/login');
-    } else {
-      // Guardar última visita
-      const lastVisit = localStorage.getItem('admin_last_visited');
-      if (lastVisit) {
-        setLastVisitedAt(new Date(lastVisit));
-      }
-      localStorage.setItem('admin_last_visited', new Date().toISOString());
-      
-      // Cargar perfil y dashboard
-      fetchProfileData();
+      return;
     }
-  }, [user, navigate]);
+    const lastVisit = localStorage.getItem('admin_last_visited');
+    if (lastVisit) setLastVisitedAt(new Date(lastVisit));
+    localStorage.setItem('admin_last_visited', new Date().toISOString());
+    fetchProfileData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userToken]);
 
   // Renderizar contenido según el menú activo
   const renderContent = () => {

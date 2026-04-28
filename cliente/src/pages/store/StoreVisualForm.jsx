@@ -11,7 +11,6 @@ const StoreVisualForm = ({ config, onUpdate, slug, onClose }) => {
   const [metaTitulo, setMetaTitulo] = useState(config?.metaTitulo || '');
   const [metaDescripcion, setMetaDescripcion] = useState(config?.metaDescripcion || '');
   const [loading, setLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(Date.now());
 
   // Actualizar estados cuando cambia la configuración
   useEffect(() => {
@@ -41,9 +40,7 @@ const StoreVisualForm = ({ config, onUpdate, slug, onClose }) => {
       
       await updateVisual(slug, updatedData);
       toast.success('Configuración visual actualizada', { icon: '🎨' });
-      
-      setRefreshKey(Date.now());
-      
+
       if (onUpdate) {
         onUpdate(updatedData);
       }
@@ -62,8 +59,6 @@ const StoreVisualForm = ({ config, onUpdate, slug, onClose }) => {
   // Para cambios de color, actualizar previsualización inmediata
   const handleColorChange = (setter, value) => {
     setter(value);
-    // Actualizar refreshKey para forzar la actualización visual en tiempo real
-    setRefreshKey(Date.now());
   };
 
   return (

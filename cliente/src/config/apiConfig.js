@@ -1,7 +1,8 @@
 // Configuración de la API
 
-// URL base del servidor API
-const API_BASE_URL = 'https://remeraslisas-backend.onrender.com';
+/** Host del backend (sin path). Misma base que axios; alinear con VITE_API_URL. */
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'https://remeraslisas-backend.onrender.com';
 
 // Rutas para acceder a recursos estáticos/archivos
 // La ruta para acceder a archivos debe incluir /api
@@ -10,23 +11,33 @@ const UPLOADS_BASE_URL = `${API_BASE_URL}/api`;
 // URLs específicas para diferentes tipos de recursos
 const IMAGES_URL = `${API_BASE_URL}/api/images`;
 
+/**
+ * Logos y videos estáticos vienen como `/images/...` o `/videos/...` (raíz del host API).
+ * Ver INTEGRACION-FRONTEND-TIENDA.md.
+ */
+export const resolveApiMediaUrl = (path) => {
+  if (!path || typeof path !== 'string') return path;
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('data:')
+  ) {
+    return path;
+  }
+  if (path.startsWith('/images/') || path.startsWith('/videos/')) {
+    return `${API_BASE_URL}${path}`;
+  }
+  return path;
+};
+
 // Función para verificar si una cadena es una URL válida
 export const isValidUrl = (string) => {
   try {
     new URL(string);
     return true;
-  } catch (_) {
+  } catch {
     return false;
   }
-};
-
-// Función para sanear URLs (eliminar caracteres problemáticos en URLs)
-const sanitizeUrlForRequest = (url) => {
-  if (!url || typeof url !== 'string') return url;
-  
-  // Reemplazar caracteres especiales en la URL
-  // Los corchetes son los más problemáticos
-  return url.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
 };
 
 // Función para construir URL completas para imágenes
@@ -64,16 +75,22 @@ export const buildImageUrl = (path, forceRefresh = false) => {
     return path;
   }
   
-  // Si es una ruta relativa, construir la URL completa
-  const API_BASE_URL = 'https://e-commerce-backend-flmk.onrender.com';
-  
+  // Rutas estáticas servidas en la raíz del mismo host que el API
+  if (path.startsWith('/images/') || path.startsWith('/videos/')) {
+    let fullUrl = `${API_BASE_URL}${path}`;
+    if (forceRefresh) {
+      const timestamp = Date.now();
+      const separator = fullUrl.includes('?') ? '&' : '?';
+      fullUrl = `${fullUrl}${separator}t=${timestamp}`;
+    }
+    return fullUrl;
+  }
+
   let url = path;
-  
-  // Si empieza con /, asegurarse de que sea una ruta relativa correcta
+
+  // Si empieza con /, rutas API bajo /api/
   if (url.startsWith('/')) {
-    // Si empieza con /api/, está bien
     if (!url.startsWith('/api/')) {
-      // Asegurarse de que comience con /api/
       url = `/api${url}`;
     }
   } else {
@@ -98,14 +115,20 @@ export const buildImageUrl = (path, forceRefresh = false) => {
   return fullUrl;
 };
 
-// Función para verificar si una cadena es base64 (ya sea con prefijo data:image o sin él)
+/** URL de video: data URL (base64 en Mongo) o ruta legacy `/videos/...` */
+export const resolveVideoUrl = (url) => resolveApiMediaUrl(url);
+
+// Función para verificar si una cadena es base64 (data URL con ;base64, o data:image/…)
 export const isBase64 = (str) => {
   // Si no es una cadena o está vacía, no es base64
   if (typeof str !== 'string' || !str || str.trim() === '') {
     return false;
   }
   
-  // Si comienza con data:image, asumimos que es base64
+  if (str.startsWith('data:') && str.includes(';base64,')) {
+    return true;
+  }
+
   if (str.startsWith('data:image')) {
     return true;
   }
@@ -126,7 +149,11 @@ export const formatBase64 = (str) => {
     return '';
   }
   
-  // Si ya tiene formato data:image, verificar si es completo y correcto
+  // data URL completa (imagen, video, etc.)
+  if (str.startsWith('data:') && str.includes(';base64,')) {
+    return str;
+  }
+
   if (str.startsWith('data:image')) {
     // Si tiene el formato correcto data:image/tipo;base64,CONTENIDO, dejarlo como está
     if (str.includes(';base64,')) {
@@ -157,6 +184,8 @@ export default {
   UPLOADS_BASE_URL,
   IMAGES_URL,
   buildImageUrl,
+  resolveApiMediaUrl,
+  resolveVideoUrl,
   isValidUrl,
   isBase64,
   formatBase64

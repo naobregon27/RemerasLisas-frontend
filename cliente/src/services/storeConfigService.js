@@ -1,5 +1,5 @@
 import axiosWithConfig from './axiosConfig';
-import { isBase64, formatBase64 } from '../config/apiConfig';
+import { API_BASE_URL, resolveApiMediaUrl } from '../config/apiConfig';
 
 // Cache para guardar las imágenes base64 entre sesiones
 const carruselImagesCache = new Map();
@@ -45,10 +45,11 @@ const processImageUrlForDisplay = (url) => {
   if (typeof url === 'string' && url.startsWith('data:')) {
     return url;
   }
-  
-  // Ruta base de la API
-  const API_BASE_URL = 'https://e-commerce-backend-flmk.onrender.com';
-  
+
+  if (typeof url === 'string' && (url.startsWith('/images/') || url.startsWith('/videos/'))) {
+    return resolveApiMediaUrl(url);
+  }
+
   // Si contiene rutas del servidor, convertir a ruta API
   if (typeof url === 'string') {
     const serverPaths = ['/opt/render/project/src/storage', 'C:\\Users\\', '/storage/', 'storage/'];
@@ -70,150 +71,138 @@ const processImageUrlForDisplay = (url) => {
       return url.replace(/\[/g, '%5B').replace(/\]/g, '%5D');
     }
     
-    // Si es una URL relativa que empieza con /api/, agregarle la base
     if (url.startsWith('/api/')) {
       return `${API_BASE_URL}${url}`;
     }
+    if (url.startsWith('/') && !url.startsWith('//')) {
+      return `${API_BASE_URL}${url}`;
+    }
   }
-  
+
   return url;
 };
 
-// Obtener la configuración de la tienda por slug
+/**
+ * Normaliza logo, banners, carrusel, secciones y videos para el front.
+ * Data URLs (`data:image/...;base64,...`, `data:video/...;base64,...`) se conservan;
+ * rutas legacy `/images/...` y `/videos/...` se resuelven contra el host del API.
+ * Mutación in-place de `ct` (misma referencia que `payload.configuracionTienda`).
+ */
+export const applyMediaToConfiguracionTienda = (ct) => {
+  if (!ct || typeof ct !== 'object') return ct;
+
+  if (ct.logo) {
+    if (typeof ct.logo === 'object' && ct.logo.url) {
+      ct.logo = {
+        ...ct.logo,
+        url: processImageUrlForDisplay(ct.logo.url),
+      };
+    } else if (typeof ct.logo === 'string') {
+      ct.logo = {
+        url: processImageUrlForDisplay(ct.logo),
+        alt: 'Logo de la tienda',
+      };
+    }
+  }
+
+  if (ct.secciones?.length) {
+    ct.secciones = ct.secciones.map((section) => {
+      if (!section.imagen) return section;
+      if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
+        return {
+          ...section,
+          imagen: {
+            ...section.imagen,
+            url: processImageUrlForDisplay(section.imagen.url),
+          },
+        };
+      }
+      return { ...section, imagen: processImageUrlForDisplay(section.imagen) };
+    });
+  }
+
+  if (ct.seccionesPersonalizadas?.length) {
+    ct.seccionesPersonalizadas = ct.seccionesPersonalizadas.map((section) => {
+      if (!section.imagen) return section;
+      if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
+        return {
+          ...section,
+          imagen: {
+            ...section.imagen,
+            url: processImageUrlForDisplay(section.imagen.url),
+          },
+        };
+      }
+      return { ...section, imagen: processImageUrlForDisplay(section.imagen) };
+    });
+  }
+
+  if (ct.banner?.length) {
+    ct.banner = ct.banner.map((item) => {
+      if (typeof item === 'object' && item.url) {
+        return { ...item, url: processImageUrlForDisplay(item.url) };
+      }
+      if (typeof item === 'string') return processImageUrlForDisplay(item);
+      return item;
+    });
+  }
+
+  if (ct.bannerPrincipal?.length) {
+    ct.bannerPrincipal = ct.bannerPrincipal.map((item) => {
+      if (typeof item === 'object' && item.url) {
+        return { ...item, url: processImageUrlForDisplay(item.url) };
+      }
+      if (typeof item === 'string') return processImageUrlForDisplay(item);
+      return item;
+    });
+    if (!ct.banner?.length) {
+      ct.banner = ct.bannerPrincipal;
+    }
+  }
+
+  if (Array.isArray(ct.carrusel) && ct.carrusel.length) {
+    let cacheUpdated = false;
+    ct.carrusel.forEach((item) => {
+      if (item.url && item._id) {
+        const processedUrl = processImageUrlForDisplay(item.url);
+        carruselImagesCache.set(item._id, processedUrl);
+        cacheUpdated = true;
+      }
+    });
+    if (cacheUpdated) saveImageCacheToStorage();
+  }
+
+  if (ct.videos?.length) {
+    ct.videos = ct.videos.map((v) => ({
+      ...v,
+      url: typeof v.url === 'string' ? resolveApiMediaUrl(v.url) : v.url,
+    }));
+  }
+
+  return ct;
+};
+
+const applyMediaToStoreConfigPayload = (payload) => {
+  if (payload?.configuracionTienda) {
+    applyMediaToConfiguracionTienda(payload.configuracionTienda);
+  }
+  return payload;
+};
+
+/** GET /api/tiendas/:slug — documentación: respuesta liviana (sin banner/carrusel/secciones/videos pesados). */
+export const getStoreBySlug = async (slug) => {
+  const res = await axiosWithConfig.get(`/api/tiendas/${slug}?t=${Date.now()}`);
+  return res.data;
+};
+
+// Obtener la configuración de la tienda por slug (admin: JWT + rol admin/superAdmin)
 export const getStoreConfig = async (slug) => {
   try {
-    // Agregar timestamp para evitar caché
     const timestamp = new Date().getTime();
     const response = await axiosWithConfig.get(`/api/tiendas/${slug}/configuracion?t=${timestamp}`);
-    
-    console.log('📦 Respuesta completa de configuración:', response.data);
-    console.log('🖼️ Banner en respuesta:', response.data?.configuracionTienda?.banner);
-    console.log('🎠 Carrusel en respuesta:', response.data?.configuracionTienda?.carrusel);
-    console.log('🏷️ Logo en respuesta:', response.data?.configuracionTienda?.logo);
-    console.log('📄 Secciones en respuesta:', response.data?.configuracionTienda?.secciones);
-    
-    // Procesar URL del logo si existe
-    if (response.data?.configuracionTienda?.logo) {
-      if (typeof response.data.configuracionTienda.logo === 'object' && response.data.configuracionTienda.logo.url) {
-        response.data.configuracionTienda.logo = {
-          ...response.data.configuracionTienda.logo,
-          url: processImageUrlForDisplay(response.data.configuracionTienda.logo.url)
-        };
-      } else if (typeof response.data.configuracionTienda.logo === 'string') {
-        response.data.configuracionTienda.logo = {
-          url: processImageUrlForDisplay(response.data.configuracionTienda.logo),
-          alt: 'Logo de la tienda'
-        };
-      }
-      console.log('🏷️ Logo procesado:', response.data.configuracionTienda.logo);
-    }
-    
-    // Procesar URLs de secciones si existen
-    if (response.data?.configuracionTienda?.secciones?.length) {
-      response.data.configuracionTienda.secciones = response.data.configuracionTienda.secciones.map(section => {
-        if (section.imagen) {
-          // Si imagen es un objeto con url, procesar la url
-          if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
-            return {
-              ...section,
-              imagen: {
-                ...section.imagen,
-                url: processImageUrlForDisplay(section.imagen.url)
-              }
-            };
-          } else {
-            // Si es string, procesarlo directamente
-            return {
-              ...section,
-              imagen: processImageUrlForDisplay(section.imagen)
-            };
-          }
-        }
-        return section;
-      });
-      console.log('📄 Secciones procesadas:', response.data.configuracionTienda.secciones);
-    }
-    
-    // También procesar seccionesPersonalizadas si existe
-    if (response.data?.configuracionTienda?.seccionesPersonalizadas?.length) {
-      response.data.configuracionTienda.seccionesPersonalizadas = response.data.configuracionTienda.seccionesPersonalizadas.map(section => {
-        if (section.imagen) {
-          // Si imagen es un objeto con url, procesar la url
-          if (typeof section.imagen === 'object' && section.imagen !== null && section.imagen.url) {
-            return {
-              ...section,
-              imagen: {
-                ...section.imagen,
-                url: processImageUrlForDisplay(section.imagen.url)
-              }
-            };
-          } else {
-            // Si es string, procesarlo directamente
-            return {
-              ...section,
-              imagen: processImageUrlForDisplay(section.imagen)
-            };
-          }
-        }
-        return section;
-      });
-      console.log('📄 SeccionesPersonalizadas procesadas:', response.data.configuracionTienda.seccionesPersonalizadas);
-    }
-    
-    // Procesar URLs de banner si existen (también bannerPrincipal)
-    if (response.data?.configuracionTienda?.banner?.length) {
-      response.data.configuracionTienda.banner = response.data.configuracionTienda.banner.map(item => {
-        if (typeof item === 'object' && item.url) {
-          return {
-            ...item,
-            url: processImageUrlForDisplay(item.url)
-          };
-        } else if (typeof item === 'string') {
-          return processImageUrlForDisplay(item);
-        }
-        return item;
-      });
-      console.log('🖼️ Banner procesado:', response.data.configuracionTienda.banner);
-    }
-    
-    // Procesar bannerPrincipal si existe (alias de banner)
-    if (response.data?.configuracionTienda?.bannerPrincipal?.length) {
-      response.data.configuracionTienda.bannerPrincipal = response.data.configuracionTienda.bannerPrincipal.map(item => {
-        if (typeof item === 'object' && item.url) {
-          return {
-            ...item,
-            url: processImageUrlForDisplay(item.url)
-          };
-        } else if (typeof item === 'string') {
-          return processImageUrlForDisplay(item);
-        }
-        return item;
-      });
-      console.log('🖼️ BannerPrincipal procesado:', response.data.configuracionTienda.bannerPrincipal);
-      // Si no existe banner, usar bannerPrincipal
-      if (!response.data.configuracionTienda.banner) {
-        response.data.configuracionTienda.banner = response.data.configuracionTienda.bannerPrincipal;
-      }
-    }
-    
-    // Almacenar en caché las imágenes del carrusel si existen
-    if (response.data?.configuracionTienda?.carrusel?.length) {
-      let cacheUpdated = false;
-      response.data.configuracionTienda.carrusel.forEach(item => {
-        if (item.url && item._id) {
-          // Procesar URL para guardar en caché
-          const processedUrl = processImageUrlForDisplay(item.url);
-          carruselImagesCache.set(item._id, processedUrl);
-          cacheUpdated = true;
-        }
-      });
-      
-      // Si se actualizó la caché, guardarla en localStorage
-      if (cacheUpdated) {
-        saveImageCacheToStorage();
-      }
-    }
-    
+
+    applyMediaToStoreConfigPayload(response.data);
+
     return response;
   } catch (error) {
     console.error('Error al obtener configuración de tienda:', error);
@@ -316,49 +305,6 @@ export const updateBanner = async (slug, bannerData) => {
     }
     throw error;
   }
-};
-
-// Función para dividir un carrusel grande en lotes más pequeños
-const chunkCarruselData = (carruselData, maxSlides = 2) => {
-  if (!carruselData || !carruselData.carrusel || !Array.isArray(carruselData.carrusel)) {
-    return null;
-  }
-  
-  // Si el carrusel tiene pocas imágenes, enviarlo completo
-  if (carruselData.carrusel.length <= maxSlides) {
-    return [carruselData];
-  }
-  
-  // Dividir en lotes
-  const chunks = [];
-  const items = [...carruselData.carrusel];
-  
-  while (items.length > 0) {
-    const chunk = items.splice(0, maxSlides);
-    chunks.push({
-      carrusel: chunk
-    });
-  }
-  
-  return chunks;
-};
-
-// Función auxiliar para convertir base64 a Blob
-const base64ToBlob = async (base64String) => {
-  // Extraer contenido real del base64
-  const base64 = base64String.split(',')[1];
-  // Determinar el tipo MIME
-  const mimeType = base64String.split(',')[0].split(':')[1].split(';')[0];
-  
-  const binStr = atob(base64);
-  const len = binStr.length;
-  const arr = new Uint8Array(len);
-  
-  for (let i = 0; i < len; i++) {
-    arr[i] = binStr.charCodeAt(i);
-  }
-  
-  return new Blob([arr], { type: mimeType });
 };
 
 // Actualizar el carrusel de la tienda
@@ -489,6 +435,86 @@ export const deleteSection = async (slug, sectionId) => {
   }
 };
 
+/**
+ * GET /api/tiendas/:slug/configuracion/publica — banner, carrusel, secciones, videos activos (base64 / data URL).
+ * Sin token. Misma normalización de URLs que la config admin.
+ */
+export const getPublicStoreConfiguration = async (slug) => {
+  const timestamp = Date.now();
+  const res = await axiosWithConfig.get(
+    `/api/tiendas/${slug}/configuracion/publica?t=${timestamp}`
+  );
+  applyMediaToStoreConfigPayload(res.data);
+  return res.data;
+};
+
+/**
+ * GET /api/tiendas/:slug/videos — solo activos. `video.url` data URL o legacy `/videos/...`.
+ */
+export const getPublicStoreVideos = async (slug) => {
+  const res = await axiosWithConfig.get(`/api/tiendas/${slug}/videos?t=${Date.now()}`);
+  const videos = res.data?.videos;
+  if (!Array.isArray(videos)) return res.data;
+  return {
+    ...res.data,
+    videos: videos.map((v) => ({
+      ...v,
+      url: typeof v.url === 'string' ? resolveApiMediaUrl(v.url) : v.url,
+    })),
+  };
+};
+
+/**
+ * Para la web pública: combina la tienda liviana con la config pública “pesada”
+ * (evita leer banner/carrusel solo desde GET /api/tiendas/:slug).
+ */
+export const mergeTiendaLivianaConConfigPublica = (tiendaDoc, publicConfigPayload) => {
+  if (!tiendaDoc || typeof tiendaDoc !== 'object') return publicConfigPayload || tiendaDoc;
+  const pubCt = publicConfigPayload?.configuracionTienda;
+  if (!pubCt) return tiendaDoc;
+  return {
+    ...tiendaDoc,
+    configuracionTienda: {
+      ...(tiendaDoc.configuracionTienda || {}),
+      ...pubCt,
+    },
+  };
+};
+
+/** Videos admin: todos (incluye inactivos). */
+export const getAdminVideos = async (slug) => {
+  const res = await axiosWithConfig.get(`/api/tiendas/${slug}/admin/videos`);
+  return res.data;
+};
+
+/** Subida: multipart, campo archivo `video`; opcional titulo, descripcion. */
+export const uploadAdminVideo = async (slug, formData) => {
+  const res = await axiosWithConfig.post(`/api/tiendas/${slug}/admin/videos`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+};
+
+export const updateAdminVideo = async (slug, videoId, payload) => {
+  const res = await axiosWithConfig.put(`/api/tiendas/${slug}/admin/videos/${videoId}`, payload);
+  return res.data;
+};
+
+export const deleteAdminVideo = async (slug, videoId) => {
+  const res = await axiosWithConfig.delete(`/api/tiendas/${slug}/admin/videos/${videoId}`);
+  return res.data;
+};
+
+/** Editar sección existente (multipart opcional con nueva imagen). */
+export const updateSection = async (slug, sectionId, formData) => {
+  const res = await axiosWithConfig.put(
+    `/api/tiendas/${slug}/admin/secciones/${sectionId}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data;
+};
+
 // Actualizar configuración visual
 export const updateVisual = async (slug, visualData) => {
   try {
@@ -507,6 +533,16 @@ export const getImageByProxy = (imageUrl) => axiosWithConfig.get(`/api/proxy-ima
 
 export default {
   getStoreConfig,
+  getStoreBySlug,
+  getPublicStoreConfiguration,
+  getPublicStoreVideos,
+  mergeTiendaLivianaConConfigPublica,
+  applyMediaToConfiguracionTienda,
+  getAdminVideos,
+  uploadAdminVideo,
+  updateAdminVideo,
+  deleteAdminVideo,
+  updateSection,
   updateLogo,
   updateBanner,
   updateCarrusel,
